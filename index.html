@@ -55,7 +55,7 @@
       <section class="panel profile-plans" id="profile-plans" hidden></section>
       <section class="plan-session panel" id="plan-session" hidden></section>
       <div class="content-grid">
-        <section class="panel chart-panel"><div class="panel-head"><div><h2 class="panel-title">动作进步</h2><div class="panel-sub">专注追踪深蹲与卧推的训练变化</div></div><div style="display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end"><select id="chart-exercise" class="chart-select" aria-label="选择动作"></select><select id="chart-metric" class="chart-select" aria-label="选择进步指标"><option value="sets">组数</option><option value="reps">总次数</option><option value="volume">训练量</option></select></div></div><div id="chart-container" class="chart-wrap"></div><div class="chart-legend"><span><i class="legend-line"></i><span id="metric-legend">每次组数</span></span><span>保持节奏，比偶尔突破更重要</span></div></section>
+        <section class="panel chart-panel"><div class="panel-head"><div><h2 class="panel-title">动作进步</h2><div class="panel-sub">追踪深蹲、卧推及 ZY 计划动作的变化</div></div><div style="display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end"><select id="chart-exercise" class="chart-select" aria-label="选择动作"></select><select id="chart-metric" class="chart-select" aria-label="选择进步指标"><option value="sets">组数</option><option value="reps">总次数</option><option value="volume">训练量</option></select></div></div><div id="chart-container" class="chart-wrap"></div><div class="chart-legend"><span><i class="legend-line"></i><span id="metric-legend">每次组数</span></span><span>保持节奏，比偶尔突破更重要</span></div></section>
         <div class="right-stack">
           <section class="panel form-panel" id="log-form-panel"><div class="form-head"><div><h2>记下这次训练</h2><p>先记录动作，再补充每组完成情况</p></div></div><form class="form-body" id="log-form">
             <div class="row"><div class="field"><label for="log-date">训练日期</label><input class="control" type="date" id="log-date" required></div><div class="field"><label for="log-exercise">训练动作</label><input class="control" id="log-exercise" list="exercise-options" placeholder="例如：深蹲" autocomplete="off" required><datalist id="exercise-options"></datalist></div></div>
@@ -144,10 +144,10 @@
   function closePlan(){const session=$('#plan-session');session.hidden=true;$('#view-overview').classList.remove('plan-active');session.innerHTML=''}
   function savePlan(plan){const date=$('#plan-date').value||today(),cards=[...$('#plan-session').querySelectorAll('.plan-exercise')],pending=[];for(const card of cards){const exercise=plan.exercises[Number(card.dataset.movement)].name,rows=[...card.querySelectorAll('.plan-set-row')],sets=[];for(const row of rows){const reps=row.querySelector('.plan-reps').value.trim(),weight=row.querySelector('.plan-weight').value.trim();if(!reps&&weight){toast(`${exercise}：填了重量的组也要填写次数`);return}if(reps)sets.push({reps,weight})}if(sets.length)pending.push({exercise,sets})}if(!pending.length){toast('至少填写一个动作的完成次数');return}for(const item of pending){if(!state.exercises.some(e=>e.name===item.exercise))state.exercises.push({name:item.exercise,group:plan.group||'其他'});state.records.push({id:crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random()),date,exercise:item.exercise,sets:item.sets,note:`${activeProfile.name} · ${plan.day}`,createdAt:Date.now()})}save();closePlan();toast(`已保存 ${pending.length} 个动作的训练记录`)}
   function drawChart(){
-    const select=$('#chart-exercise'),old=select.value,choices=[['squat','深蹲'],['bench','卧推']];
-    select.innerHTML=choices.map(([key,label])=>`<option value="${key}">${label}</option>`).join('');
-    if(choices.some(([key])=>key===old))select.value=old;
-    const key=select.value,name=choices.find(([id])=>id===key)[1],matches=r=>key==='squat'?/深蹲|squat/i.test(r.exercise):/卧推|bench/i.test(r.exercise),m=$('#chart-metric').value,labels={sets:'每次组数',reps:'每次总次数',volume:'每次训练量'};
+    const select=$('#chart-exercise'),old=select.value,groups=[{label:'常用动作',names:['深蹲','卧推']},...zyPlans.map(p=>({label:p.day,names:p.exercises.map(ex=>ex.name)}))];
+    select.innerHTML=groups.map(g=>`<optgroup label="${esc(g.label)}">${g.names.map(name=>`<option value="${esc(name)}">${esc(name)}</option>`).join('')}</optgroup>`).join('');
+    if([...select.options].some(option=>option.value===old))select.value=old;
+    const name=select.value,matches=r=>r.exercise===name||(name==='深蹲'&&/^(杠铃深蹲|squat)$/i.test(r.exercise))||(name==='卧推'&&/^(杠铃卧推|bench press)$/i.test(r.exercise)),m=$('#chart-metric').value,labels={sets:'每次组数',reps:'每次总次数',volume:'每次训练量'};
     $('#metric-legend').textContent=labels[m];
     let rs=state.records.filter(matches).sort((a,b)=>a.date.localeCompare(b.date)||a.createdAt-b.createdAt);
     const box=$('#chart-container');
